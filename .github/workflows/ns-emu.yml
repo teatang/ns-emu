@@ -1,10 +1,10 @@
-name: Nintendo Switch Emulator
+name: Nintendo Switch Emulator Release
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - main # 监听的分支，可以根据自己项目情况修改
+      - main
   schedule:
     - cron: "30 1 * * *"
 
@@ -13,7 +13,7 @@ permissions:
   packages: write
 
 jobs:
-  download_emulator:
+  release_emulator:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -22,12 +22,26 @@ jobs:
       - name: Download emulator
         run: |
           set -e
-          curl -f -o Eden-Android-v0.0.3-rc3-Legacy.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3-Legacy.apk" || echo "Eden-Android-v0.0.3-rc3-Legacy.apk下载失败"
-          curl -f -o Eden-Android-v0.0.3-rc3-Optimised.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3-Optimised.apk" || echo "Eden-Android-v0.0.3-rc3-Optimised.apk下载失败"
-          curl -f -o Eden-Android-v0.0.3-rc3.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3.apk" || echo "Eden-Android-v0.0.3-rc3.apk下载失败"
-          curl -f -o Eden-Windows-v0.0.3-rc3-amd64.zip "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Windows-v0.0.3-rc3-amd64.zip" || echo "Eden-Windows-v0.0.3-rc3-amd64.zip下载失败"
+          curl -f -o Eden-Android-v0.0.3-rc3-Legacy.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3-Legacy.apk"
+          curl -f -o Eden-Android-v0.0.3-rc3-Optimised.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3-Optimised.apk"
+          curl -f -o Eden-Android-v0.0.3-rc3.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3.apk"
+          curl -f -o Eden-Windows-v0.0.3-rc3-amd64.zip "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Windows-v0.0.3-rc3-amd64.zip"
 
-      - name: Release
+      - name: Validate downloads
+        run: |
+          for file in *.apk *.zip; do
+            if [ ! -f "$file" ]; then
+              echo "$file 下载失败"
+              exit 1
+            fi
+            size=$(stat -c%s "$file")
+            if [ "$size" -lt 1000 ]; then
+              echo "$file 文件大小异常"
+              exit 1
+            fi
+          done
+
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -36,3 +50,4 @@ jobs:
             Eden-Android-v0.0.3-rc3.apk
             Eden-Windows-v0.0.3-rc3-amd64.zip
           tag_name: latest
+          generate_release_notes: true
