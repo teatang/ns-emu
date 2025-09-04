@@ -1,0 +1,33 @@
+name: Nintendo Switch Emulator
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "00 30 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  download_emulator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download emulator
+        run: |
+          curl -o Eden-Android-v0.0.3-rc3-Legacy.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3-Legacy.apk"
+          curl -o Eden-Android-v0.0.3-rc3-Optimised.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3-Optimised.apk"
+          curl -o eden-Android-v0.0.3-rc3.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3.apk"
+          curl -o Eden-Windows-v0.0.3-rc3-amd64.zip "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Windows-v0.0.3-rc3-amd64.zip"
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            Eden-Android-v0.0.3-rc3-Legacy.apk
+            Eden-Android-v0.0.3-rc3-Optimised.apk
+            eden-Android-v0.0.3-rc3.apk
+            curl -o Eden-Windows-v0.0.3-rc3-amd64.zip
+          tag_name: latest
