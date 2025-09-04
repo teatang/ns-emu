@@ -21,9 +21,10 @@ jobs:
 
       - name: Download emulator
         run: |
-          set -e
-          curl -f -o Eden-Android-v0.0.3-rc3.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3.apk"
-          curl -f -o Eden-Windows-v0.0.3-rc3-amd64.zip "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Windows-v0.0.3-rc3-amd64.zip"
+          wget -O Eden-Android-v0.0.3-rc3-Legacy.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3-Legacy.apk"
+          wget -O Eden-Android-v0.0.3-rc3-Optimised.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3-Optimised.apk"
+          wget -O Eden-Android-v0.0.3-rc3.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3.apk"
+          wget -O Eden-Windows-v0.0.3-rc3-amd64.zip "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Windows-v0.0.3-rc3-amd64.zip"
 
       - name: Validate downloads
         run: |
@@ -43,6 +44,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            Eden-Android-v0.0.3-rc3-Legacy.apk
+            Eden-Android-v0.0.3-rc3-Optimised.apk
             Eden-Android-v0.0.3-rc3.apk
             Eden-Windows-v0.0.3-rc3-amd64.zip
           tag_name: latest
