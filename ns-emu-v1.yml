@@ -19,22 +19,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get latest release
-        id: get_release
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const release = await github.rest.repos.getLatestRelease({
-              owner: eden-emulator,
-              repo: Release
-            })
-            return release.data
-
-      - name: Download assets
+      - name: Download Eden Emulator
+        uses: actions/download-release-asset@v2
         run: |
-          for asset in ${{ steps.get_release.outputs.result.assets }}; do
-            wget -O $(echo $asset | jq -r '.name') $(echo $asset | jq -r '.browser_download_url')
-          done
+          wget -O Eden-Android-v0.0.3-rc3-Legacy.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3-Legacy.apk"
+          wget -O Eden-Android-v0.0.3-rc3-Optimised.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3-Optimised.apk"
+          wget -O Eden-Android-v0.0.3-rc3.apk "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Android-v0.0.3-rc3.apk"
+          wget -O Eden-Windows-v0.0.3-rc3-amd64.zip "https://github.com/eden-emulator/Releases/releases/download/v0.0.3-rc3/Eden-Windows-v0.0.3-rc3-amd64.zip"
 
       - name: Validate downloads
         run: |
