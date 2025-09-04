@@ -32,5 +32,5 @@ jobs:
             Eden-Android-v0.0.3-rc3-Legacy.apk
             Eden-Android-v0.0.3-rc3-Optimised.apk
             eden-Android-v0.0.3-rc3.apk
-            curl -o Eden-Windows-v0.0.3-rc3-amd64.zip
+            Eden-Windows-v0.0.3-rc3-amd64.zip
           tag_name: latest
