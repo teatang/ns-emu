@@ -2,6 +2,11 @@ name: Nintendo Switch Emulator Release
 
 on:
   workflow_dispatch:
+    inputs:
+      source_repo:
+        description: "Source repository (owner/repo)"
+        required: true
+        default: "eden-emulator/Releases"
   push:
     branches:
       - main
@@ -19,44 +24,84 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get latest release
+      - name: Get latest release info
         id: get_release
         uses: actions/github-script@v6
         with:
           script: |
-            const release = await github.rest.repos.getLatestRelease({
-              owner: eden-emulator,
-              repo: Releases
+            const [owner, repo] = '${{ github.event.inputs.source_repo || 'eden-emulator/Releases' }}'.split('/')
+            const response = await github.rest.repos.getLatestRelease({
+              owner: owner,
+              repo: repo
             })
-            return release.data
 
-      - name: Download assets
-        run: |
-          for asset in ${{ steps.get_release.outputs.result.assets }}; do
-            wget -O $(echo $asset | jq -r '.name') $(echo $asset | jq -r '.browser_download_url')
-          done
+            // 保存所有assets信息
+            const assets = response.data.assets.map(asset => {
+              return {
+                name: asset.name,
+                url: asset.browser_download_url,
+                size: asset.size,
+                content_type: asset.content_type
+              }
+            })
 
-      - name: Validate downloads
+            // 保存release信息
+            core.setOutput('release_name', response.data.name)
+            core.setOutput('release_tag', response.data.tag_name)
+            core.setOutput('release_body', response.data.body)
+            core.setOutput('assets', JSON.stringify(assets))
+
+            return assets
+
+      - name: Download all assets
+        id: download_assets
         run: |
-          for file in *.apk *.zip; do
-            if [ ! -f "$file" ]; then
-              echo "$file 下载失败"
+          mkdir -p downloaded_assets
+          assets='${{ steps.get_release.outputs.assets }}'
+
+          echo "Found assets: $assets"
+
+          for row in $(echo "$assets" | jq -r '.[] | @base64'); do
+            _jq() {
+              echo ${row} | base64 --decode | jq -r ${1}
+            }
+            
+            name=$(_jq '.name')
+            url=$(_jq '.url')
+            
+            echo "Downloading $name from $url"
+            curl -L -o "downloaded_assets/$name" "$url"
+            
+            # 验证文件大小
+            expected_size=$(_jq '.size')
+            actual_size=$(wc -c < "downloaded_assets/$name")
+            
+            if [ "$actual_size" -lt "$expected_size" ]; then
+              echo "Error: Downloaded file $name is smaller than expected ($actual_size < $expected_size)"
               exit 1
             fi
-            size=$(stat -c%s "$file")
-            if [ "$size" -lt 1000 ]; then
-              echo "$file 文件大小异常"
-              exit 1
-            fi
           done
 
-      - name: Create Release
+      - name: Create new release
+        id: create_release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: "republished-${{ steps.get_release.outputs.release_tag }}"
+          name: "Republished: ${{ steps.get_release.outputs.release_name }}"
+          body: |-
+            ### 原始发布信息
+            ${{ steps.get_release.outputs.release_body }}
+
+            ### 自动重新发布
+            此版本由GitHub Actions自动从[${{ github.event.inputs.source_repo || 'eden-emulator/Releases' }}](https://github.com/${{ github.event.inputs.source_repo || 'eden-emulator/Releases' }}/releases/tag/${{ steps.get_release.outputs.release_tag }})同步
+
+            发布时间: ${{ steps.get_release.outputs.release_date }}
+          draft: false
+          prerelease: false
           files: |
-            Eden-Android-v0.0.3-rc3-Legacy.apk
-            Eden-Android-v0.0.3-rc3-Optimised.apk
-            Eden-Android-v0.0.3-rc3.apk
-            Eden-Windows-v0.0.3-rc3-amd64.zip
-          tag_name: latest
-          generate_release_notes: true
+            downloaded_assets/*
+
+      - name: Verify uploaded assets
+        run: |
+          echo "Successfully republished all assets from ${{ steps.get_release.outputs.release_tag }}"
+          echo "View release at: ${{ steps.create_release.outputs.html_url }}"
