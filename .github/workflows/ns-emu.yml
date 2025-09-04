@@ -3,7 +3,7 @@ name: Nintendo Switch Emulator
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 1 * * *"
+    - cron: "26 1 * * *"
 
 permissions:
   contents: write
