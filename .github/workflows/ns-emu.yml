@@ -2,6 +2,9 @@ name: Nintendo Switch Emulator
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main # 监听的分支，可以根据自己项目情况修改
   schedule:
     - cron: "26 1 * * *"
 
