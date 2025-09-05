@@ -24,12 +24,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get latest release info
-        id: get_release
+      - name: Get Eden latest release info
+        id: get_eden_release
         uses: actions/github-script@v6
         with:
           script: |
-            const [owner, repo] = '${{ github.event.inputs.source_repo || 'eden-emulator/Releases' }}'.split('/')
+            const [owner, repo] = '${{ 'eden-emulator/Releases' }}'.split('/')
             const response = await github.rest.repos.getLatestRelease({
               owner: owner,
               repo: repo
@@ -53,13 +53,13 @@ jobs:
 
             return assets
 
-      - name: Download all assets
-        id: download_assets
+      - name: Download Eden all assets
+        id: download_eden_assets
         run: |
           mkdir -p downloaded_assets
-          assets='${{ steps.get_release.outputs.assets }}'
+          assets='${{ steps.get_eden_release.outputs.assets }}'
 
-          echo "Found assets: $assets"
+          echo "Found eden assets: $assets"
 
           for row in $(echo "$assets" | jq -r '.[] | @base64'); do
             _jq() {
@@ -81,21 +81,71 @@ jobs:
               exit 1
             fi
           done
+      - name: Get Sudachi latest release info
+        id: get_sudachi_release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const [owner, repo] = '${{ 'emuplace/sudachi.emuplace.app' }}'.split('/')
+            const response = await github.rest.repos.getLatestRelease({
+              owner: owner,
+              repo: repo
+            })
+
+            // 保存所有assets信息
+            const assets = response.data.assets.map(asset => {
+              return {
+                name: asset.name,
+                url: asset.browser_download_url,
+                size: asset.size,
+                content_type: asset.content_type
+              }
+            })
+
+            // 保存release信息
+            core.setOutput('release_name', response.data.name)
+            core.setOutput('release_tag', response.data.tag_name)
+            core.setOutput('release_body', response.data.body)
+            core.setOutput('assets', JSON.stringify(assets))
+
+            return assets
+
+      - name: Download Sudachi all assets
+        id: download_sudachi_assets
+        run: |
+          mkdir -p downloaded_assets
+          assets='${{ steps.get_sudachi_release.outputs.assets }}'
+
+          echo "Found sudachi assets: $assets"
+
+          for row in $(echo "$assets" | jq -r '.[] | @base64'); do
+            _jq() {
+              echo ${row} | base64 --decode | jq -r ${1}
+            }
+            
+            old_name=$(_jq '.name')
+            name="sudachi-${old_name}"
+            url=$(_jq '.url')
+            
+            echo "Downloading $name from $url"
+            curl -L -o "downloaded_assets/$name" "$url"
+            
+            # 验证文件大小
+            expected_size=$(_jq '.size')
+            actual_size=$(wc -c < "downloaded_assets/$name")
+            
+            if [ "$actual_size" -lt "$expected_size" ]; then
+              echo "Error: Downloaded file $name is smaller than expected ($actual_size < $expected_size)"
+              exit 1
+            fi
+          done
 
       - name: Create new release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "republished-${{ steps.get_release.outputs.release_tag }}"
-          name: "Republished: ${{ steps.get_release.outputs.release_name }}"
-          body: |-
-            ### 原始发布信息
-            ${{ steps.get_release.outputs.release_body }}
-
-            ### 自动重新发布
-            此版本由GitHub Actions自动从[${{ github.event.inputs.source_repo || 'eden-emulator/Releases' }}](https://github.com/${{ github.event.inputs.source_repo || 'eden-emulator/Releases' }}/releases/tag/${{ steps.get_release.outputs.release_tag }})同步
-
-            发布时间: ${{ steps.get_release.outputs.release_date }}
+          tag_name: "latest"
+          name: "latest"
           draft: false
           prerelease: false
           files: |
@@ -103,5 +153,5 @@ jobs:
 
       - name: Verify uploaded assets
         run: |
-          echo "Successfully republished all assets from ${{ steps.get_release.outputs.release_tag }}"
+          echo "Successfully republished all assets"
           echo "View release at: ${{ steps.create_release.outputs.html_url }}"
