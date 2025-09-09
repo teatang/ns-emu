@@ -23,6 +23,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        
+      # 新增：强制清理旧文件目录 
+      - name: Clean old assets directory 
+        run: | 
+          rm -rf downloaded_assets/* 
+          mkdir -p downloaded_assets 
+          echo "Assets directory cleaned"
 
       - name: Get Eden latest release info
         id: get_eden_release
