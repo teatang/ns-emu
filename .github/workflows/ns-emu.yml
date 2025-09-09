@@ -153,6 +153,7 @@ jobs:
         with:
           tag_name: "latest"
           name: "latest"
+          overwrite: true
           draft: false
           prerelease: false
           files: |
