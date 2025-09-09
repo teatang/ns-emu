@@ -154,8 +154,6 @@ jobs:
           tag_name: "latest"
           name: "latest"
           overwrite: true
-          draft: false
-          prerelease: false
           files: |
             downloaded_assets/*
 
